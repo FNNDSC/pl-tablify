@@ -2,10 +2,10 @@
 
 from pathlib import Path
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
-
 from chris_plugin import chris_plugin, PathMapper
 import json
 import pandas as pd
+import openpyxl
 
 
 __version__ = '1.0.0'
@@ -22,14 +22,12 @@ DISPLAY_TITLE = r"""
 """
 
 
-parser = ArgumentParser(description='!!!CHANGE ME!!! An example ChRIS plugin which '
-                                    'counts the number of occurrences of a given '
-                                    'word in text files.',
+parser = ArgumentParser(description='A ChRIS plugin to generate interactive tables from structured data files.',
                         formatter_class=ArgumentDefaultsHelpFormatter)
 parser.add_argument('-p', '--pattern', default='**/*.json', type=str,
                     help='input file filter glob')
-parser.add_argument('-i', '--includeTags', default='', type=str,
-                    help='comma separated header tags to be displayed in the output table')
+parser.add_argument('-i', '--includeHeaders', default='', type=str,
+                    help='comma separated headers to be displayed in the output table')
 parser.add_argument('-V', '--version', action='version',
                     version=f'%(prog)s {__version__}')
 
@@ -70,8 +68,8 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
     for input_file, output_file in mapper:
         with open(input_file, "r") as f:
             data = json.load(f)
-        df = pd.DataFrame(data)
-        include = getattr(options, "includeTags", None)
+        #df = pd.DataFrame(data)
+        include = getattr(options, "includeHeaders", None)
 
         if include and include.strip():
             columns = [col.strip() for col in include.split(",") if col.strip()]
@@ -81,6 +79,10 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
             {key: row.get(key) for key in columns if key in row}
             for row in data
         ]
+        filtered_df = pd.DataFrame(filtered_data)
+        filtered_df.to_csv(output_file.with_suffix('.csv'), index=False)
+        filtered_df.to_excel(output_file.with_suffix('.xlsx'), index=False, engine="openpyxl")
+
 
         html_table, headers = json_to_html_table(filtered_data)
         checkboxes = "<div id='columnToggle'>"
