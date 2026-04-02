@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 from pathlib import Path
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
 from chris_plugin import chris_plugin, PathMapper
@@ -28,6 +28,8 @@ parser.add_argument('-p', '--pattern', default='**/*.json', type=str,
                     help='input file filter glob')
 parser.add_argument('-i', '--includeHeaders', default='', type=str,
                     help='comma separated headers to be displayed in the output table')
+parser.add_argument('-o', '--outputFileStem', default='search_results', type=str,
+                    help='output file stem to store table data')
 parser.add_argument('-V', '--version', action='version',
                     version=f'%(prog)s {__version__}')
 
@@ -64,36 +66,56 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
     #
     # Refer to the documentation for more options, examples, and advanced uses e.g.
     # adding a progress bar and parallelism.
+
+    merged = []
     mapper = PathMapper.file_mapper(inputdir, outputdir, glob=options.pattern)
     for input_file, output_file in mapper:
         with open(input_file, "r") as f:
             data = json.load(f)
-        #df = pd.DataFrame(data)
-        include = getattr(options, "includeHeaders", None)
+            if isinstance(data, list):
+                merged.extend(data)
+            else:
+                raise ValueError(f"{input_file} does not contain a list")
 
-        if include and include.strip():
-            columns = [col.strip() for col in include.split(",") if col.strip()]
-        else:
-            columns = list(data[0].keys())
-        filtered_data = [
-            {key: row.get(key) for key in columns if key in row}
-            for row in data
-        ]
-        filtered_df = pd.DataFrame(filtered_data)
-        filtered_df.to_csv(output_file.with_suffix('.csv'), index=False)
-        filtered_df.to_excel(output_file.with_suffix('.xlsx'), index=False, engine="openpyxl")
+    # Convert each dict to a JSON string to make it hashable
+    unique_items = {json.dumps(d, sort_keys=True) for d in merged}
+
+    # Convert back to a list of dictionaries
+    merged_list = [json.loads(s) for s in unique_items]
+
+    output_file_path = Path(outputdir) / options.outputFileStem
+    build_data_table(options, merged_list, output_file_path)
 
 
-        html_table, headers = json_to_html_table(filtered_data)
-        checkboxes = "<div id='columnToggle'>"
-        for i, col in enumerate(headers):
-            checkboxes += f"""
+def build_data_table(options, data, output_file):
+    if data is None or len(data) == 0:
+        raise ValueError("Input JSON is null")
+
+    # df = pd.DataFrame(data)
+    include = getattr(options, "includeHeaders", None)
+
+    if include and include.strip():
+        columns = [col.strip() for col in include.split(",") if col.strip()]
+    else:
+        columns = list(data[0].keys())
+    filtered_data = [
+        {key: row.get(key) for key in columns if key in row}
+        for row in data
+    ]
+    filtered_df = pd.DataFrame(filtered_data)
+    filtered_df.to_csv(output_file.with_suffix('.csv'), index=False)
+    filtered_df.to_excel(output_file.with_suffix('.xlsx'), index=False, engine="openpyxl")
+
+    html_table, headers = json_to_html_table(filtered_data)
+    checkboxes = "<div id='columnToggle'>"
+    for i, col in enumerate(headers):
+        checkboxes += f"""
             <label>
                 <input type="checkbox" class="col-toggle" data-column="{i}" checked> {col}
             </label><br>
             """
-        checkboxes += "</div>"
-        full_html = f"""
+    checkboxes += "</div>"
+    full_html = f"""
         <!DOCTYPE html>
         <html>
         <head>
@@ -124,10 +146,10 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
         </body>
         </html>
         """
-        op_file_path = output_file.with_suffix('.html')
+    op_file_path = output_file.with_suffix('.html')
 
-        with open(op_file_path, "w") as f:
-            f.write(full_html)
+    with open(op_file_path, "w") as f:
+        f.write(full_html)
 
 
 def json_to_html_table(data):
