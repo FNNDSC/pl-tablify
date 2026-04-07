@@ -1,16 +1,19 @@
-# A ChRIS plugin to generate interactive tables from structured data files. 
+# A ChRIS plugin to generate interactive tables from structured data files
 
 [![Version](https://img.shields.io/docker/v/fnndsc/pl-tablify?sort=semver)](https://hub.docker.com/r/fnndsc/pl-tablify)
 [![MIT License](https://img.shields.io/github/license/fnndsc/pl-tablify)](https://github.com/FNNDSC/pl-tablify/blob/main/LICENSE)
 [![ci](https://github.com/FNNDSC/pl-tablify/actions/workflows/ci.yml/badge.svg)](https://github.com/FNNDSC/pl-tablify/actions/workflows/ci.yml)
 
 `pl-tablify` is a [_ChRIS_](https://chrisproject.org/)
-_ds_ plugin which takes in ...  as input files and
-creates ... as output files.
+_ds_ plugin which takes in structured data files (e.g. JSON) and
+creates interactive tabular representations as output files.
 
 ## Abstract
 
-...
+`pl-tablify` scans input directories for structured data files (by default, JSON),
+extracts their contents, and converts them into interactive table formats suitable
+for visualization and exploration. Users can filter which files to include using
+glob patterns and optionally restrict which fields (headers) appear in the output.
 
 ## Installation
 
@@ -24,13 +27,22 @@ To get started with local command-line usage, use [Apptainer](https://apptainer.
 
 ```shell
 apptainer exec docker://fnndsc/pl-tablify tablify [--args values...] input/ output/
-```
+
 
 To print its available options, run:
 
 ```shell
 apptainer exec docker://fnndsc/pl-tablify tablify --help
 ```
+
+## Arguments
+| Flag | Long Flag          | Default          | Description                                                             |
+| ---- | ------------------ | ---------------- | ----------------------------------------------------------------------- |
+| `-p` | `--pattern`        | `**/*.json`      | Input file filter glob pattern used to select structured data files     |
+| `-i` | `--includeHeaders` | `''`             | Comma-separated list of headers (fields) to include in the output table |
+| `-o` | `--outputFileStem` | `search_results` | Output file name stem used when saving generated table data             |
+| `-V` | `--version`        | —                | Print plugin version and exit                                           |
+
 
 ## Examples
 
@@ -55,7 +67,6 @@ Build a local container image:
 ```shell
 docker build -t localhost/fnndsc/pl-tablify .
 ```
-
 ### Running
 
 Mount the source code `tablify.py` into a container to try out changes without rebuild.
