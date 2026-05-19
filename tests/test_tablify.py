@@ -282,7 +282,7 @@ class TestBuildDataTable:
 
             df = pd.read_csv(output_path.with_suffix('.csv'))
             assert len(df) == 2
-            assert pd.isna(df.loc[1, 'email']) or df.loc[1, 'email'] is None
+            assert pd.isna(df.loc[1, 'email']) or (df.loc[1, 'email'] is None)
 
 
 class TestMain:

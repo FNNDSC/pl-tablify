@@ -103,7 +103,10 @@ def build_data_table(options, data, output_file):
         for row in data
     ]
     filtered_df = pd.DataFrame(filtered_data)
-    filtered_df.to_json(output_file.with_suffix('.json'))
+    records = filtered_df.to_dict(orient="records")
+
+    with open(output_file.with_suffix(".json"), "w") as f:
+        json.dump(records, f, indent=2)
     filtered_df.to_csv(output_file.with_suffix('.csv'), index=False)
     filtered_df.to_excel(output_file.with_suffix('.xlsx'), index=False, engine="openpyxl")
 
